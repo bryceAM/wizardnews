@@ -14,7 +14,9 @@ app.use(express.json());
 const cors = require('cors');
 app.use(cors());
 
-const postBank = require("./postBank");
+// const postBank = require("./postBank");
+const {find, list} = require("./postBank");
+
 
 app.use(express.static(__dirname + "/public"));
 
@@ -23,8 +25,9 @@ app.get('/', (req, res) => {
     console.log('Made it to the root!')
     // sending back a string, so you need the quotes.
     // remember you're working with database strings to be translated to objects once they get back to the client
-    const posts = postBank.list();
-    const vDOM = `<!DOCTYPE html>
+    const posts = list();
+
+    const postsPage = `<!DOCTYPE html>
     <html>
     <head>
         <title>Wizard News</title>
@@ -36,7 +39,7 @@ app.get('/', (req, res) => {
         ${posts.map((post) => `
            <div class='news-item'>
            <p>
-           <span class="news-position">${post.id}. ▲</span>${post.title}
+           <span class="news-position">${post.id}. ▲</span><a href="/posts/${post.id}">${post.title}</a>
            <small>(by ${post.name})</small>
            </p>
            <small class="news-info">
@@ -48,7 +51,8 @@ app.get('/', (req, res) => {
         </div>
     </body>
     </html>`;
-    res.send(vDOM);
+
+    res.send(postsPage);
 })
 
 // .static('public') -> public is a folder name
@@ -58,22 +62,56 @@ app.get('/', (req, res) => {
 app.get('/posts/:id', (req, res, next) => {
     const {id} = req.params;
     console.log('Made it to the post id path!')
-    find(id);
+    let post = find(id);
 
+    if (!post.id) {
+        next();
+    } else {
+        const singlePost = `<!DOCTYPE html>
+        <html>
+        <head>
+            <title>Wizard News</title>
+            <link rel="stylesheet" href="/style.css" />
+        </head>
+        <body>
+            <div class="news-list">
+            <header><img src="/logo.png"/>Wizard News</header>
+            
+               <div class='news-item'>
+               <p>
+               <span class="news-position">${post.id}. ▲</span>${post.title}
+               <small>(by ${post.name})</small>
+               </p>
+               <small class="news-info">
+               ${post.upvotes} upvotes | ${post.date}
+               </small>
+               </div>
 
-    // if (id == 'doesNotExist') {
-    //     next();
-    // } else {
-    //     res.send(`<div>you chose ${id}!</div>`)
-    // }
+            </div>
+        </body>
+        </html>`
+
+        res.send(singlePost);
+    }
 })
 
 // * is a catchall
 app.get('*', (req, res) => {
-    // sending html error message instead of error object
-    res.status(404).send('<div>404 error!</div>')
-    // sending error object instead of html
-    res.status(404).send({error: 'oh nose!', message: 'page does not exist!'})
+    const pageNotFound = `<!DOCTYPE html>
+    <html>
+    <head>
+      <title>Wizard News</title>
+      <link rel="stylesheet" href="/style.css" />
+    </head>
+    <body>
+      <header><img src="/logo.png"/>Wizard News</header>
+      <div class="not-found">
+        <p>Accio Page! 🧙‍♀️ ... Page Not Found</p>
+      </div>
+    </body>
+    </html>`
+
+    res.send(pageNotFound);
 })
 
 app.listen(3000, () => {
